@@ -286,24 +286,36 @@ header h1 {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
   font-family: 'Arial', sans-serif; 
 }
+.editarDiv{
+  animation: popupGrow 0.5s ease-out;
+  transform-origin: center; 
+  background-color: #f9f9f9; 
+  border-radius: 10px; 
+  padding: 20px; 
+  max-width: 600px; 
+  margin: 20px auto; 
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
+  font-family: 'Arial', sans-serif; 
+
+}
   
-  .adicionarDiv h2 {
+  .adicionarDiv h2,.editarDiv h2 {
     color: #333; 
     text-align: center; 
     margin-bottom: 20px;
     font-size: 24px; 
   }
   
-  .adicionarDiv span {
+  .adicionarDiv span,.editarDiv span {
     display: block; 
     margin-bottom: 15px; 
     color: #555; 
     font-weight: bold; 
   }
   
-  .adicionarDiv input[type='text'],
-  .adicionarDiv input[type='date'],
-  .adicionarDiv input[type='file'] {
+  .adicionarDiv input[type='text'],.editarDiv input[type='text'],
+  .adicionarDiv input[type='date'],.editarDiv input[type='date'],
+  .adicionarDiv input[type='file']{
     width: 100%; 
     padding: 10px; 
     border-radius: 5px; 
@@ -313,14 +325,14 @@ header h1 {
     transition: border-color 0.3s;
   }
   
-  .adicionarDiv input[type='text']:focus,
-  .adicionarDiv input[type='date']:focus,
-  .adicionarDiv input[type='file']:focus {
+  .adicionarDiv input[type='text']:focus,.editarDiv input[type='text']:focus,
+  .adicionarDiv input[type='date']:focus,.editarDiv input[type='date']:focus,
+  .adicionarDiv input[type='date']:focus {
     border-color: #007bff; 
     outline: none; 
   }
   
-  .adicionarDiv button {
+  .adicionarDiv button ,.editarDiv button {
     background-color: #007bff; 
     color: #fff; 
     padding: 10px 20px; 
@@ -333,7 +345,7 @@ header h1 {
     transition: background-color 0.3s; 
   }
   
-  .adicionarDiv button:hover {
+  .adicionarDiv button:hover,.editarDiv button:hover {
     background-color: #0056b3;
   }
   

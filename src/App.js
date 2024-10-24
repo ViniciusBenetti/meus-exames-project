@@ -5,23 +5,20 @@ import React, { useState,useEffect } from 'react';
 
 
 
-function EditScreen({index, onSave, onCancel}){
+function EditScreen({index,currentExamList, onSave, onCancel}){
 
-  function EditScreen({ index, onSave, onCancel }) {
-    const [examList, setExamList] = useState([]);
-    const [isLoaded, setIsLoaded] = useState(false);
+    var editDiv;
+    var primeiraLinha;
+    var conteudo;
   
     useEffect(() => {
-      const savedExams = JSON.parse(localStorage.getItem('exam')) || [];
-      setExamList(savedExams);
-      setIsLoaded(true);
+      editDiv = document.getElementsByClassName("editarDiv")[0];
+      primeiraLinha = document.getElementById("primeira-linha");
+      conteudo = document.getElementById("conteudo");
     }, []);
   
-    const editDiv = document.getElementsByClassName("editarDiv")[0];
-    const primeiraLinha = document.getElementById("primeira-linha");
-    const conteudo = document.getElementById("conteudo");
-  
     function returnMain() {
+      console.log(editDiv)
       editDiv.style.animation = "popupHide 0.5s ease-in";
       primeiraLinha.style.transition = "transform 0.5s ease-out";
       conteudo.style.transition = "transform 0.5s ease-out";
@@ -36,31 +33,44 @@ function EditScreen({index, onSave, onCancel}){
   
     function saveExam(event) {
       event.preventDefault();
+      const formData = new FormData(event.target);
+      const examData = {
+        nomeExame: formData.get('nomeExame'),
+        dataExame: formData.get('dataExame'),
+        nomeClinica: formData.get('nomeClinica'),
+        nomeDoutor: formData.get('nomeDoutor'),
+        arquivoExame: currentExamList[index].arquivoExame,
+        observacoes: formData.get('observacoes')
+      };
+      let listExamData = currentExamList;
+
+      listExamData.splice(index,1,examData)/
+      localStorage.setItem('exam',JSON.stringify(listExamData))
+
+      onSave(listExamData);
       returnMain();
     }
   
-    if (!isLoaded) {
-      return <div>Loading...</div>; // Opcional: Você pode colocar um spinner aqui
-    }
   
-    const exam = examList[index];
-  
+    const exam = currentExamList[index];
+
+
     return (
       <div className='editarDiv'>
         <form onSubmit={saveExam}>
           <h2>Adicionar Exame</h2>
-          <span>Nome do exame:* <input type='text' value={exam.nomeExame} name='nomeExame' required maxLength="30" autoComplete="new-password" /></span>
-          <span>Data do exame:* <input type='date' value={exam.dataExame} name='dataExame' required max={new Date().toISOString().split('T')[0]} /></span>
-          <span>Nome da clínica:* <input type='text' value={exam.nomeClinica} name='nomeClinica' required maxLength="30" autoComplete="new-password" /></span>
-          <span>Nome do doutor:* <input type='text' value={exam.nomeDoutor} name='nomeDoutor' required maxLength="30" autoComplete="new-password" /></span>
-          <span>Arquivo do exame:* <input type='file' name='arquivoExame' required /></span>
-          <span>Observações: <input type='text' value={exam.observacoes} name='observacoes' maxLength="100" autoComplete="new-password" /></span>
+          <span>Nome do exame:* <input type='text' defaultValue={exam.nomeExame} name='nomeExame' required maxLength="30" autoComplete="new-password" /></span>
+          <span>Data do exame:* <input type='date' defaultValue={exam.dataExame} name='dataExame' required max={new Date().toISOString().split('T')[0]} /></span>
+          <span>Nome da clínica:* <input type='text' defaultValue={exam.nomeClinica} name='nomeClinica' required maxLength="30" autoComplete="new-password" /></span>
+          <span>Nome do doutor:* <input type='text' defaultValue={exam.nomeDoutor} name='nomeDoutor' required maxLength="30" autoComplete="new-password" /></span>
+          <span> <a href={exam.arquivoExame} target="_blank" rel="noopener noreferrer">Ver Arquivo</a></span>
+          <span>Observações: <input type='text' defaultValue={exam.observacoes} name='observacoes' maxLength="100" autoComplete="new-password" /></span>
           <button type='submit'>Salvar</button>
           <button type='button' onClick={returnMain}>Voltar</button>
         </form>
       </div>
     );
-  }
+  
 }
 
 function AdicionarScreen({ onSave, onCancel }) {
@@ -144,13 +154,14 @@ export default function App() {
 
 
   useEffect(() => {
+
     const savedExams = JSON.parse(localStorage.getItem('exam')) || [];
     setExamList(savedExams);
   },[])
 
   const components = {
     adicionarScreen: () => <AdicionarScreen onSave={setExamList} onCancel={()=>setDisplay('homeScreen')} />,
-    editScreen: () => <EditScreen  index={currentIndex} onSave={setExamList} onCancel={()=>setDisplay('homeScreen')} />,
+    editScreen: () => <EditScreen index={currentIndex} currentExamList={examList} onSave={setExamList} onCancel={()=>setDisplay('homeScreen')} />,
 
   };
 
