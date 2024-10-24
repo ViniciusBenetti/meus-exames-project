@@ -37,15 +37,36 @@
   }
 }
 
-@keyframes shiftUp {
+
+@keyframes bounceUp {
   0% {
     transform: translateY(0);
   }
+  50% {
+    transform: translateY(-2vh);
+  }
+  75% {
+    transform: translateY(-1vh);
+  }
   100% {
-    transform: translateY(0);
+    transform: translateY(-3vh);
   }
 }
 
+@keyframes bounceUpDelayed {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3vh);
+  }
+  75% {
+    transform: translateY(-2vh);
+  }
+  100% {
+    transform: translateY(-4vh);
+  }
+}
 header {
   background-color: #007bff; 
   border-radius: 8px; 
@@ -276,7 +297,6 @@ header h1 {
     z-index: 1000; 
 }
 .adicionarDiv {
-  animation: popupGrow 0.5s ease-out;
   transform-origin: center; 
   background-color: #f9f9f9; 
   border-radius: 10px; 
@@ -287,7 +307,6 @@ header h1 {
   font-family: 'Arial', sans-serif; 
 }
 .editarDiv{
-  animation: popupGrow 0.5s ease-out;
   transform-origin: center; 
   background-color: #f9f9f9; 
   border-radius: 10px; 

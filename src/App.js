@@ -1,136 +1,177 @@
 import './App.css';
 import './bootstrap-4.0.0/dist/css/bootstrap.css';
 import './fontawesome-free-5.15.4-web/css/all.css';
-import React, { useState,useEffect } from 'react';
+import React, { useState,useEffect,useRef } from 'react';
 
 
 
-function EditScreen({index,currentExamList, onSave, onCancel}){
+function EditScreen({index, currentExamList, onSave, onCancel}) {
+  const [isFirstRun, setIsFirstRun] = useState(true);
+  // Usar useRef para referências estáveis
+  const editDivRef = useRef(null);
+  const primeiraLinhaRef = document.querySelector("#primeira-linha");
+  const conteudoRef = document.querySelector("#conteudo")
 
-    var editDiv;
-    var primeiraLinha;
-    var conteudo;
-  
-    useEffect(() => {
-      editDiv = document.getElementsByClassName("editarDiv")[0];
-      primeiraLinha = document.getElementById("primeira-linha");
-      conteudo = document.getElementById("conteudo");
-    }, []);
-  
-    function returnMain() {
-      console.log(editDiv)
-      editDiv.style.animation = "popupHide 0.5s ease-in";
-      primeiraLinha.style.transition = "transform 0.5s ease-out";
-      conteudo.style.transition = "transform 0.5s ease-out";
-      primeiraLinha.style.transform = 'translateY(1vh)';
-      conteudo.style.transform = 'translateY(2vh)';
+  useEffect(() => {
+    // Executa apenas uma vez na montagem
+    if (isFirstRun) {
+      editDivRef.current.style.animation = "popupGrow 0.5s ease-out";
+      primeiraLinhaRef.style.animation = "";
+      conteudoRef.style.animation = "";
+      primeiraLinhaRef.style.animationFillMode = "";
+      conteudoRef.style.animationFillMode = "";
       setTimeout(() => {
-        primeiraLinha.style.transform = 'translateY(-1vh)';
-        conteudo.style.transform = 'translateY(-2vh)';
-        onCancel();
+        setIsFirstRun(false); 
       }, 500);
     }
+  }, []); // Array vazio para executar apenas na montagem
   
-    function saveExam(event) {
-      event.preventDefault();
-      const formData = new FormData(event.target);
-      const examData = {
-        nomeExame: formData.get('nomeExame'),
-        dataExame: formData.get('dataExame'),
-        nomeClinica: formData.get('nomeClinica'),
-        nomeDoutor: formData.get('nomeDoutor'),
-        arquivoExame: currentExamList[index].arquivoExame,
-        observacoes: formData.get('observacoes')
-      };
-      let listExamData = currentExamList;
+  function returnMain() {
+    editDivRef.current.style.animation = "popupHide 0.5s ease-in";
+    primeiraLinhaRef.style.animation = "bounceUp 2s ease-in-out";
+    conteudoRef.style.animation = "bounceUpDelayed 2s ease-in-out";
+    primeiraLinhaRef.style.animationFillMode = "forwards";
+    conteudoRef.style.animationFillMode = "fowards";
 
-      listExamData.splice(index,1,examData)/
-      localStorage.setItem('exam',JSON.stringify(listExamData))
+    
+    setTimeout(() => {
 
-      onSave(listExamData);
-      returnMain();
+      onCancel();
+    }, 500);
+  }
+
+  function saveExam(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const examData = {
+      nomeExame: formData.get('nomeExame'),
+      dataExame: formData.get('dataExame'),
+      nomeClinica: formData.get('nomeClinica'),
+      nomeDoutor: formData.get('nomeDoutor'),
+      arquivoExame: currentExamList[index].arquivoExame,
+      observacoes: formData.get('observacoes')
+    };
+    
+    let listExamData = currentExamList;
+
+    function itemExists(arg) {
+      return arg.some(obj => Object.keys(examData).every(chave =>
+        obj[chave] === examData[chave]
+      ));    
     }
-  
-  
-    const exam = currentExamList[index];
 
+    if (!itemExists(listExamData)) {
+      listExamData.splice(index, 1, examData);
+      localStorage.setItem('exam', JSON.stringify(listExamData));
+      // Primeiro executa a animação
+      returnMain();
+      // Depois atualiza os dados
+      setTimeout(() => {
+        onSave(listExamData);
+      }, 500); // Espera a animação terminar
+    }
+  }
 
-    return (
-      <div className='editarDiv'>
-        <form onSubmit={saveExam}>
-          <h2>Adicionar Exame</h2>
-          <span>Nome do exame:* <input type='text' defaultValue={exam.nomeExame} name='nomeExame' required maxLength="30" autoComplete="new-password" /></span>
-          <span>Data do exame:* <input type='date' defaultValue={exam.dataExame} name='dataExame' required max={new Date().toISOString().split('T')[0]} /></span>
-          <span>Nome da clínica:* <input type='text' defaultValue={exam.nomeClinica} name='nomeClinica' required maxLength="30" autoComplete="new-password" /></span>
-          <span>Nome do doutor:* <input type='text' defaultValue={exam.nomeDoutor} name='nomeDoutor' required maxLength="30" autoComplete="new-password" /></span>
-          <span> <a href={exam.arquivoExame} target="_blank" rel="noopener noreferrer">Ver Arquivo</a></span>
-          <span>Observações: <input type='text' defaultValue={exam.observacoes} name='observacoes' maxLength="100" autoComplete="new-password" /></span>
-          <button type='submit'>Salvar</button>
-          <button type='button' onClick={returnMain}>Voltar</button>
-        </form>
-      </div>
-    );
-  
+  const exam = currentExamList[index];
+
+  return (
+    <div className='editarDiv' ref={editDivRef}>
+      <form onSubmit={saveExam}>
+        <h2>Editar Exame</h2>
+        <span>Nome do exame:* <input type='text' defaultValue={exam.nomeExame} name='nomeExame' required maxLength="30" autoComplete="new-password" /></span>
+        <span>Data do exame:* <input type='date' defaultValue={exam.dataExame} name='dataExame' required max={new Date().toISOString().split('T')[0]} /></span>
+        <span>Nome da clínica:* <input type='text' defaultValue={exam.nomeClinica} name='nomeClinica' required maxLength="30" autoComplete="new-password" /></span>
+        <span>Nome do doutor:* <input type='text' defaultValue={exam.nomeDoutor} name='nomeDoutor' required maxLength="30" autoComplete="new-password" /></span>
+        <span> <a href={exam.arquivoExame} target="_blank" rel="noopener noreferrer">Ver Arquivo</a></span>
+        <span>Observações: <input type='text' defaultValue={exam.observacoes} name='observacoes' maxLength="100" autoComplete="new-password" /></span>
+        <button type='submit' >Salvar</button>
+        <button type='button' onClick={returnMain}>Voltar</button>
+      </form>
+    </div>
+  );
 }
 
 function AdicionarScreen({ onSave, onCancel }) {
-  var adcDiv;
-  var primeiraLinha;
-  var conteudo;
-  useEffect(() => {
-    adcDiv = document.getElementsByClassName("adicionarDiv")[0];
-    primeiraLinha = document.getElementById("primeira-linha");
-    conteudo = document.getElementById("conteudo")
-    
+  const [isFirstRun, setIsFirstRun] = useState(true);
+  // Usar useRef para manter referências estáveis aos elementos
+  const adcDivRef = useRef(null);
+  const primeiraLinhaRef = document.querySelector("#primeira-linha");
+  const conteudoRef = document.querySelector("#conteudo")
 
-  }, []);
-  function returnMain() {
-    adcDiv.style.animation = "popupHide 0.5s ease-in";
-    primeiraLinha.style.transition = "transform 0.5s ease-out";
-    conteudo.style.transition = "transform 0.5s ease-out"
-    primeiraLinha.style.transform = 'translateY(1vh)';
-    conteudo.style.transform = 'translateY(2vh)';
+  useEffect(() => {
+    // Executa apenas uma vez na montagem do componente
+    if (isFirstRun) {
+      adcDivRef.current.style.animation = "popupGrow 0.5s ease-out";
+      primeiraLinhaRef.style.animation = "";
+      conteudoRef.style.animation = "";
+      primeiraLinhaRef.style.animationFillMode = "";
+      conteudoRef.style.animationFillMode = "";
       setTimeout(() => {
-        primeiraLinha.style.transform = 'translateY(-1vh)';
-        conteudo.style.transform = 'translateY(-2vh)';
-        onCancel();
-      }, 500); 
+        setIsFirstRun(false);
+      }, 500);
+    }
+  }, []); // Array de dependências vazio para executar apenas na montagem
+
+  function returnMain() {
+    // Usar as refs para acessar os elementos
+    adcDivRef.current.style.animation = "popupHide 0.5s ease-in-out";
+    primeiraLinhaRef.style.animation = "bounceUp 2s ease-in-out";
+    conteudoRef.style.animation = "bounceUpDelayed 2s ease-in-out";
+    primeiraLinhaRef.style.animationFillMode = "forwards";
+    conteudoRef.style.animationFillMode = "fowards";
+
+    setTimeout(() => {
+      onCancel();
+    }, 500);
 
   }
 
-      function readFileAsDataURL(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = error => reject(error);
-          reader.onabort = error => reject(error)
-          reader.readAsDataURL(file);
-        });
-      }
+  async function saveExam(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const file = formData.get('arquivoExame');
+    const examData = {
+      nomeExame: formData.get('nomeExame'),
+      dataExame: formData.get('dataExame'),
+      nomeClinica: formData.get('nomeClinica'),
+      nomeDoutor: formData.get('nomeDoutor'),
+      arquivoExame: await readFileAsDataURL(file),
+      observacoes: formData.get('observacoes')
+    };
   
-      async function saveExam(event) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const file = formData.get('arquivoExame');
-        const examData = {
-          nomeExame: formData.get('nomeExame'),
-          dataExame: formData.get('dataExame'),
-          nomeClinica: formData.get('nomeClinica'),
-          nomeDoutor: formData.get('nomeDoutor'),
-          arquivoExame: await readFileAsDataURL(file),
-          observacoes: formData.get('observacoes')
-        };
-      
-        let listExamData = JSON.parse(localStorage.getItem('exam')) || [];
-        listExamData.push(examData);
-        localStorage.setItem('exam', JSON.stringify(listExamData));
-        returnMain()
-        onSave(listExamData);
+    let listExamData = JSON.parse(localStorage.getItem('exam')) || [];
 
-      }
-  
+    function itemExists(arg) {
+      return arg.some(obj => Object.keys(examData).every(chave =>
+        obj[chave] === examData[chave]
+      ));    
+    }
+
+    if (!itemExists(listExamData)) {
+      listExamData.push(examData);
+      localStorage.setItem('exam', JSON.stringify(listExamData));
+      // Primeiro executa a animação
+      returnMain(); 
+      // Depois atualiza os dados
+      setTimeout(() => {
+        onSave(listExamData);
+      }, 500); // Espera a animação terminar
+    }
+  }
+
+  // Função readFileAsDataURL permanece igual
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+      reader.onabort = error => reject(error)
+      reader.readAsDataURL(file);
+    });
+  }
+
   return (
-    <div className='adicionarDiv'>
+    <div className='adicionarDiv' ref={adcDivRef}>
       <form onSubmit={saveExam}>
         <h2>Adicionar Exame</h2>
         <span>Nome do exame:* <input type='text' name='nomeExame' required maxLength="30" autoComplete="new-password" /></span>
@@ -139,12 +180,11 @@ function AdicionarScreen({ onSave, onCancel }) {
         <span>Nome do doutor:* <input type='text' name='nomeDoutor' required maxLength="30" autoComplete="new-password"/></span>
         <span>Arquivo do exame:* <input type='file' name='arquivoExame' required /></span>
         <span>Observações: <input type='text' name='observacoes' maxLength="100" autoComplete="new-password"/></span>
-        <button type='submit'>Salvar</button>
+        <button type='submit' >Salvar</button>
         <button type='button' onClick={returnMain}>Voltar</button>
       </form>
     </div>
   );
-
 }
 
 export default function App() {
