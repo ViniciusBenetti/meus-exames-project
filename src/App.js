@@ -4,28 +4,51 @@ import './fontawesome-free-5.15.4-web/css/all.css';
 import React, { useState,useEffect,useRef } from 'react';
 
 
-function FilterBallon({ onSelection, onScape }) {
+function modernAlert(msg,alertType) {
+  const alertContainer = document.getElementById('alertContainer');
+  const alert = document.createElement('div');
+  alert.className = 'alert';
+  alert.style.background = alertType
+  alert.innerHTML = msg;
+
+  alertContainer.appendChild(alert);
+
+  setTimeout(() => {
+    alert.style.animation = 'fadeOut 0.5s ease-in';
+    setTimeout(() => {
+      alert.remove();
+    }, 500); 
+  }, 5500); 
+}
+
+
+
+
+function FilterBallon({sortType, onSelection, onScape}) {
   const balao = useRef(null);
-  const [clickCount, setClickCount] = useState(0);
 
   useEffect(() => {
     if (balao.current) {
       window.addEventListener('click', handleClickOutside);
-    }
 
+    }
     return () => {
+      let li = document.querySelectorAll("li");
+      li.forEach(el => {
+      let checkboxli = el.querySelector("input");
+      if(checkboxli.id === sortType.current){
+        checkboxli.checked = true
+      }
+ 
+    });
       window.removeEventListener('click', handleClickOutside);
     };
-  }, [clickCount]);
-
+  }, [balao]);
+  
   const handleClickOutside = (event) => {
     if (!event.target.closest(".ballon") && !event.target.matches(".fa-filter")) {
-      if (clickCount === 0) {
-        setClickCount(1); 
-      } else if (clickCount === 1) {
-        onScape(); 
-        setClickCount(0); 
-      }
+      onScape()
+
     }
   };
 
@@ -34,6 +57,7 @@ function FilterBallon({ onSelection, onScape }) {
     li.forEach(el => {
       let checkboxli = el.querySelector("input");
       checkboxli.checked = false;
+ 
     });
   }
 
@@ -41,39 +65,42 @@ function FilterBallon({ onSelection, onScape }) {
     unCheckAll();
     let nameFilter = document.querySelector("#nameFilter");
     nameFilter.checked = true;
-
     onSelection('nameFilter')
+
   }
 
   function sortByDate() {
     unCheckAll();
     let dateFilter = document.querySelector("#dateFilter");
     dateFilter.checked = true;
-
     onSelection('dateFilter')
+
+
   }
 
   function sortByDoctor() {
     unCheckAll();
     let doctorFilter = document.querySelector("#doctorFilter");
     doctorFilter.checked = true;
-
     onSelection('doctorFilter')
+
+
   }
 
   function sortByClinic() {
     unCheckAll();
     let clinicFilter = document.querySelector("#clinicFilter");
     clinicFilter.checked = true;
-
     onSelection('clinicFilter')
+
+
   }
 
   return (
     <div className='ballon' ref={balao}>
       <div className='content'>
         <ul>
-          <li onClick={sortByName}> <input type='radio' id='nameFilter' />Nome do exame</li>
+          <li onClick={sortByName}> <input type='radio' id='nameFilter' className='' />Nome do exame</li>
           <li onClick={sortByDate}> <input type='radio' id='dateFilter' />Mais recentes</li>
           <li onClick={sortByDoctor}><input type='radio' id='doctorFilter' />Nome do doutor</li>
           <li onClick={sortByClinic}><input type='radio' id='clinicFilter' />Nome da clínica</li>
@@ -110,7 +137,7 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
     primeiraLinhaRef.style.animation = "bounceUp 2s ease-in-out";
     conteudoRef.style.animation = "bounceUpDelayed 2s ease-in-out";
     primeiraLinhaRef.style.animationFillMode = "forwards";
-    conteudoRef.style.animationFillMode = "fowards";
+    conteudoRef.style.animationFillMode = "forwards";
 
     
     setTimeout(() => {
@@ -142,12 +169,14 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
     if (!itemExists(listExamData)) {
       listExamData.splice(index, 1, examData);
       localStorage.setItem('exam', JSON.stringify(listExamData));
-
       returnMain();
+      modernAlert('Exame salvo com sucesso!','#a7ffa7')
 
       setTimeout(() => {
         onSave(listExamData);
       }, 500); 
+    }else{
+      modernAlert('Exame totalmente igual já existe!','#ff8888')
     }
   }
 
@@ -197,7 +226,7 @@ function AdicionarScreen({ onSave, onCancel }) {
     primeiraLinhaRef.style.animation = "bounceUp 2s ease-in-out";
     conteudoRef.style.animation = "bounceUpDelayed 2s ease-in-out";
     primeiraLinhaRef.style.animationFillMode = "forwards";
-    conteudoRef.style.animationFillMode = "fowards";
+    conteudoRef.style.animationFillMode = "forwards";
 
     setTimeout(() => {
       onCancel();
@@ -230,11 +259,14 @@ function AdicionarScreen({ onSave, onCancel }) {
       listExamData.push(examData);
       localStorage.setItem('exam', JSON.stringify(listExamData));
 
+      modernAlert('Exame salvo com sucesso!','#a7ffa7')
       returnMain(); 
 
       setTimeout(() => {
         onSave(listExamData);
       }, 500); 
+    }else{
+      modernAlert('Exame totalmente igual já existe!','#ff8888')
     }
   }
 
@@ -270,7 +302,9 @@ export default function App() {
   const [display, setDisplay] = useState('homeScreen');
   const [examList, setExamList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(null);
-  const [filter, setFilter] = useState(null)
+  const sortRef = useRef(null);
+  const noExamFound = useRef(null)
+
 
 
   useEffect(() => {
@@ -282,7 +316,7 @@ export default function App() {
   const components = {
     adicionarScreen: () => <AdicionarScreen onSave={setExamList} onCancel={()=>setDisplay('homeScreen')} />,
     editScreen: () => <EditScreen index={currentIndex} currentExamList={examList} onSave={setExamList} onCancel={()=>setDisplay('homeScreen')} />,
-    filterBallon: () => <FilterBallon onSelection={handleFilter} onScape={()=>setDisplay('homeScreen')} />
+    filterBallon: () => <FilterBallon  sortType={sortRef}  onSelection={handleSort} onScape={()=>setDisplay('homeScreen')}/>
 
   };
 
@@ -298,14 +332,49 @@ export default function App() {
     setDisplay('editScreen');
 
   }
-  function handleFilter(filterType){
-    setFilter(filterType)
 
-    if(filterType == 'nameFilter'){
-      console.log('oi')
+  function handleSort(isSorted){
+    sortRef.current = isSorted
+    if (isSorted === 'nameFilter') {
+      examList.sort((a, b) => {
+        if (a.nomeExame < b.nomeExame) {
+          return -1;
+        }
+        if (a.nomeExame > b.nomeExame) {
+          return 1;
+        }
+        return 0;
+      });
+    }else if (isSorted === 'dateFilter') {
+      examList.sort((a, b) => {
+        const dateA = new Date(a.dataExame);
+        const dateB = new Date(b.dataExame);
+        return dateA - dateB;
+      });
+    
+    }else if(isSorted === 'doctorFilter') {
+      examList.sort((a, b) => {
+        if (a.nomeDoutor < b.nomeDoutor) {
+          return -1;
+        }
+        if (a.nomeDoutor > b.nomeDoutor) {
+          return 1;
+        }
+        return 0;
+      });
+    }else if(isSorted === 'clinicFilter') {
+      examList.sort((a, b) => {
+        if (a.nomeClinica < b.nomeClinica) {
+          return -1;
+        }
+        if (a.nomeClinica > b.nomeClinica) {
+          return 1;
+        }
+        return 0;
+      });
     }
+  
   }
-
 
   function deleteExam(ind){
     let examItem = document.getElementsByClassName("exam-item")
@@ -315,6 +384,7 @@ export default function App() {
     setTimeout(() => {
       setExamList(updatedExamList);
     }, 500); 
+    modernAlert('Exame excluído com sucesso!','#a7ffa7')
    
     
   }
@@ -322,8 +392,23 @@ export default function App() {
     
     setDisplay('filterBallon')
   }
-  function findExam(){
+  function findExam(event){
+    const value = event.target.value.toLowerCase();
+    let savedExams = JSON.parse(localStorage.getItem('exam') || []);
 
+
+    const filteredExams = savedExams.filter(exam =>
+      exam.nomeExame.toLowerCase() === value ||
+      exam.dataExame === value ||
+      exam.nomeClinica.toLowerCase() === value ||
+      exam.nomeDoutor.toLowerCase() === value
+    );
+
+    setExamList(filteredExams)
+    if(filteredExams.length === 0 && value === ''){
+      setExamList(savedExams)
+    }
+ 
   }
 
   return (
@@ -339,7 +424,7 @@ export default function App() {
               <i className="fas fa-filter" onClick={()=>filterExam()}></i>
             </span>
           </div>
-          <input className="form-control" type="text" placeholder="Pesquisar exames..." />
+          <input className="form-control" type="text"  onChange={(event) => findExam(event)} placeholder="Pesquisar exames..." />
           <div className="input-group-append">
             <span className="input-group-text bg-secondary text-white">
               <i className="fas fa-search"></i>
@@ -374,7 +459,7 @@ export default function App() {
       ))}
     </div>
   ) : (
-    <p>Nenhum exame salvo ainda.</p>
+    <p ref={noExamFound}>Nenhum exame encontrado.</p>
   )}
   </div>
 
@@ -382,6 +467,8 @@ export default function App() {
       <button onClick={addExam} className="btn btn-success rounded-circle fixed-bottom m-4 p-3 shadow" id="addButton">
         <i className="fas fa-plus"></i>
       </button>
+      <div id="alertContainer"></div>
+
 
 
     </div>
