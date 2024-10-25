@@ -26,7 +26,7 @@ design moderno e responsivo
 feedback: empresavinix@gmail.com
 
 
-1 - funcao para filtrar os exames em: nome do exame, data do exame, nome do doutor e ascendente
+1 - funcao para filtrar os exames em: nome do exame, data do exame, nome do doutor,nome da clinica ascendente
 2 - funcao para pesquisar de acordo com os 4 tipos de filtro
 3 - alerta moderno para avisar quando editou, salvou,excluiu, ou deu erro
 

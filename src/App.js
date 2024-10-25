@@ -4,16 +4,95 @@ import './fontawesome-free-5.15.4-web/css/all.css';
 import React, { useState,useEffect,useRef } from 'react';
 
 
+function FilterBallon({ onSelection, onScape }) {
+  const balao = useRef(null);
+  const [clickCount, setClickCount] = useState(0);
+
+  useEffect(() => {
+    if (balao.current) {
+      window.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+    };
+  }, [clickCount]);
+
+  const handleClickOutside = (event) => {
+    if (!event.target.closest(".ballon") && !event.target.matches(".fa-filter")) {
+      if (clickCount === 0) {
+        setClickCount(1); 
+      } else if (clickCount === 1) {
+        onScape(); 
+        setClickCount(0); 
+      }
+    }
+  };
+
+  function unCheckAll() {
+    let li = document.querySelectorAll("li");
+    li.forEach(el => {
+      let checkboxli = el.querySelector("input");
+      checkboxli.checked = false;
+    });
+  }
+
+  function sortByName() {
+    unCheckAll();
+    let nameFilter = document.querySelector("#nameFilter");
+    nameFilter.checked = true;
+
+    onSelection('nameFilter')
+  }
+
+  function sortByDate() {
+    unCheckAll();
+    let dateFilter = document.querySelector("#dateFilter");
+    dateFilter.checked = true;
+
+    onSelection('dateFilter')
+  }
+
+  function sortByDoctor() {
+    unCheckAll();
+    let doctorFilter = document.querySelector("#doctorFilter");
+    doctorFilter.checked = true;
+
+    onSelection('doctorFilter')
+  }
+
+  function sortByClinic() {
+    unCheckAll();
+    let clinicFilter = document.querySelector("#clinicFilter");
+    clinicFilter.checked = true;
+
+    onSelection('clinicFilter')
+  }
+
+  return (
+    <div className='ballon' ref={balao}>
+      <div className='content'>
+        <ul>
+          <li onClick={sortByName}> <input type='radio' id='nameFilter' />Nome do exame</li>
+          <li onClick={sortByDate}> <input type='radio' id='dateFilter' />Mais recentes</li>
+          <li onClick={sortByDoctor}><input type='radio' id='doctorFilter' />Nome do doutor</li>
+          <li onClick={sortByClinic}><input type='radio' id='clinicFilter' />Nome da clínica</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+
 
 function EditScreen({index, currentExamList, onSave, onCancel}) {
   const [isFirstRun, setIsFirstRun] = useState(true);
-  // Usar useRef para referências estáveis
   const editDivRef = useRef(null);
   const primeiraLinhaRef = document.querySelector("#primeira-linha");
   const conteudoRef = document.querySelector("#conteudo")
 
   useEffect(() => {
-    // Executa apenas uma vez na montagem
+
     if (isFirstRun) {
       editDivRef.current.style.animation = "popupGrow 0.5s ease-out";
       primeiraLinhaRef.style.animation = "";
@@ -24,7 +103,7 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
         setIsFirstRun(false); 
       }, 500);
     }
-  }, []); // Array vazio para executar apenas na montagem
+  }, []); 
   
   function returnMain() {
     editDivRef.current.style.animation = "popupHide 0.5s ease-in";
@@ -63,12 +142,12 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
     if (!itemExists(listExamData)) {
       listExamData.splice(index, 1, examData);
       localStorage.setItem('exam', JSON.stringify(listExamData));
-      // Primeiro executa a animação
+
       returnMain();
-      // Depois atualiza os dados
+
       setTimeout(() => {
         onSave(listExamData);
-      }, 500); // Espera a animação terminar
+      }, 500); 
     }
   }
 
@@ -93,13 +172,13 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
 
 function AdicionarScreen({ onSave, onCancel }) {
   const [isFirstRun, setIsFirstRun] = useState(true);
-  // Usar useRef para manter referências estáveis aos elementos
+
   const adcDivRef = useRef(null);
   const primeiraLinhaRef = document.querySelector("#primeira-linha");
   const conteudoRef = document.querySelector("#conteudo")
 
   useEffect(() => {
-    // Executa apenas uma vez na montagem do componente
+
     if (isFirstRun) {
       adcDivRef.current.style.animation = "popupGrow 0.5s ease-out";
       primeiraLinhaRef.style.animation = "";
@@ -110,10 +189,10 @@ function AdicionarScreen({ onSave, onCancel }) {
         setIsFirstRun(false);
       }, 500);
     }
-  }, []); // Array de dependências vazio para executar apenas na montagem
+  }, []); 
 
   function returnMain() {
-    // Usar as refs para acessar os elementos
+
     adcDivRef.current.style.animation = "popupHide 0.5s ease-in-out";
     primeiraLinhaRef.style.animation = "bounceUp 2s ease-in-out";
     conteudoRef.style.animation = "bounceUpDelayed 2s ease-in-out";
@@ -150,16 +229,16 @@ function AdicionarScreen({ onSave, onCancel }) {
     if (!itemExists(listExamData)) {
       listExamData.push(examData);
       localStorage.setItem('exam', JSON.stringify(listExamData));
-      // Primeiro executa a animação
+
       returnMain(); 
-      // Depois atualiza os dados
+
       setTimeout(() => {
         onSave(listExamData);
-      }, 500); // Espera a animação terminar
+      }, 500); 
     }
   }
 
-  // Função readFileAsDataURL permanece igual
+ 
   function readFileAsDataURL(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -191,6 +270,7 @@ export default function App() {
   const [display, setDisplay] = useState('homeScreen');
   const [examList, setExamList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(null);
+  const [filter, setFilter] = useState(null)
 
 
   useEffect(() => {
@@ -202,6 +282,7 @@ export default function App() {
   const components = {
     adicionarScreen: () => <AdicionarScreen onSave={setExamList} onCancel={()=>setDisplay('homeScreen')} />,
     editScreen: () => <EditScreen index={currentIndex} currentExamList={examList} onSave={setExamList} onCancel={()=>setDisplay('homeScreen')} />,
+    filterBallon: () => <FilterBallon onSelection={handleFilter} onScape={()=>setDisplay('homeScreen')} />
 
   };
 
@@ -217,6 +298,15 @@ export default function App() {
     setDisplay('editScreen');
 
   }
+  function handleFilter(filterType){
+    setFilter(filterType)
+
+    if(filterType == 'nameFilter'){
+      console.log('oi')
+    }
+  }
+
+
   function deleteExam(ind){
     let examItem = document.getElementsByClassName("exam-item")
     examItem[ind].style.animation = "popupHide 0.5s ease-in"
@@ -229,7 +319,8 @@ export default function App() {
     
   }
   function filterExam(){
-
+    
+    setDisplay('filterBallon')
   }
   function findExam(){
 
@@ -245,7 +336,7 @@ export default function App() {
         <div className="input-group w-100">
           <div className="input-group-prepend">
             <span className="input-group-text bg-secondary text-white">
-              <i className="fas fa-filter"></i>
+              <i className="fas fa-filter" onClick={()=>filterExam()}></i>
             </span>
           </div>
           <input className="form-control" type="text" placeholder="Pesquisar exames..." />
