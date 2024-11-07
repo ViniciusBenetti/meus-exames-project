@@ -28,22 +28,13 @@ function FilterBallon({sortType, onSelection, onScape}) {
   const balao = useRef(null);
 
   useEffect(() => {
-    if (balao.current) {
-      window.addEventListener('click', handleClickOutside);
 
-    }
-    return () => {
-      let li = document.querySelectorAll("li");
-      li.forEach(el => {
-      let checkboxli = el.querySelector("input");
-      if(checkboxli.id === sortType.current){
-        checkboxli.checked = true
-      }
- 
-    });
-      window.removeEventListener('click', handleClickOutside);
-    };
-  }, [balao]);
+    if (balao.current) {
+     window.addEventListener('click', handleClickOutside); }
+     let li = document.querySelectorAll("li"); li.forEach(el => {
+     let checkboxli = el.querySelector("input"); if (checkboxli.id === sortType.current) { 
+      checkboxli.checked = true; } else { checkboxli.checked = false; } }); return () => {
+         window.removeEventListener('click', handleClickOutside); }; }, [balao, sortType, onScape]);
   
   const handleClickOutside = (event) => {
     if (!event.target.closest(".ballon") && !event.target.matches(".fa-filter")) {
@@ -190,7 +181,21 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
         <span>Data do exame:* <input type='date' defaultValue={exam.dataExame} name='dataExame' required max={new Date().toISOString().split('T')[0]} /></span>
         <span>Nome da clínica:* <input type='text' defaultValue={exam.nomeClinica} name='nomeClinica' required maxLength="30" autoComplete="new-password" /></span>
         <span>Nome do doutor:* <input type='text' defaultValue={exam.nomeDoutor} name='nomeDoutor' required maxLength="30" autoComplete="new-password" /></span>
-        <span> <a href={exam.arquivoExame} target="_blank" rel="noopener noreferrer">Ver Arquivo</a></span>
+        <span>
+    <a href="#" onClick={(e) => {
+        e.preventDefault();
+        const fileUrl = exam.arquivoExame;
+
+        if (window.cordova && window.cordova.InAppBrowser) {
+            window.cordova.InAppBrowser.open(fileUrl, '_blank', 'location=yes');
+        } else {
+            window.open(fileUrl, '_blank', 'noopener,noreferrer');
+        }
+    }}>Ver Arquivo</a>
+</span>
+
+
+
         <span>Observações: <input type='text' defaultValue={exam.observacoes} name='observacoes' maxLength="100" autoComplete="new-password" /></span>
         <button type='submit' >Salvar</button>
         <button type='button' onClick={returnMain}>Voltar</button>
@@ -270,16 +275,29 @@ function AdicionarScreen({ onSave, onCancel }) {
     }
   }
 
- 
-  function readFileAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-      reader.onabort = error => reject(error)
-      reader.readAsDataURL(file);
-    });
-  }
+  async function readFileAsDataURL(file) {
+    try {
+
+        if (file.type === 'application/pdf') {
+            return file.name; 
+        }
+
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.onabort = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    } catch (error) {
+        console.error('Error reading file:', error);
+        throw error;
+    }
+}
+
+
+
+
 
   return (
     <div className='adicionarDiv' ref={adcDivRef}>
@@ -443,7 +461,21 @@ export default function App() {
             <p><strong>Data do exame:</strong> <span>{exam.dataExame}</span></p>
             <p><strong>Nome da clínica:</strong> <span>{exam.nomeClinica}</span></p>
             <p><strong>Nome do doutor:</strong> <span>{exam.nomeDoutor}</span></p>
-            <p><strong>Arquivo do exame:</strong> <a href={exam.arquivoExame} target="_blank" rel="noopener noreferrer">Ver Arquivo</a></p>
+            <p><strong>Arquivo do exame:</strong>
+            <a href="#" onClick={(e) => {
+        e.preventDefault();
+        const fileUrl = exam.arquivoExame;
+
+
+        if (window.cordova && window.cordova.InAppBrowser) {
+            window.cordova.InAppBrowser.open(fileUrl, '_blank', 'location=yes');
+        } else {
+
+            window.open(fileUrl, '_blank', 'noopener,noreferrer');
+        }
+    }}>Ver Arquivo</a>
+
+</p>
             <p><strong>Observações:</strong> <span>{exam.observacoes}</span></p>
 
           </div>
