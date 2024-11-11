@@ -1,7 +1,81 @@
 import './App.css';
 import './bootstrap-4.0.0/dist/css/bootstrap.css';
 import './fontawesome-free-5.15.4-web/css/all.css';
+import { openDB } from 'idb';
 import React, { useState,useEffect,useRef } from 'react';
+
+
+const initDB = async () => {
+
+  return await openDB('examDB', 1, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains('exams')) {
+        db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
+      }
+      db.clear()
+
+    },
+  });
+};
+const clearAllExams = async () => {
+  const db = await initDB();
+  const tx = db.transaction('exams', 'readwrite');
+  const store = tx.objectStore('exams');
+  
+  await store.clear(); 
+  
+  await tx.done;
+};
+
+
+
+function dataURLtoBlob(dataURL) { 
+const byteString = atob(dataURL.split(',')[1]); 
+const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0]; 
+const ab = new ArrayBuffer(byteString.length); 
+const ia = new Uint8Array(ab); 
+for (let i = 0; i < byteString.length; i++) { 
+  ia[i] = byteString.charCodeAt(i); } return new Blob([ab], { type: mimeString }); }
+
+
+function createBlobURL(dataURL) {
+   const blob = dataURLtoBlob(dataURL); 
+   return URL.createObjectURL(blob); 
+  }
+
+async function readFileAsDataURL(file) { 
+
+  const worker = new Worker(new URL('./fileWorker.js', import.meta.url)); 
+  return new Promise((resolve, reject) => { 
+    worker.onmessage = function(event) { 
+
+      if (event.data.error) {
+
+         reject(new Error(event.data.error)); }
+       else if (event.data.result) {
+
+         resolve(event.data.result); } else 
+       { 
+
+        reject(new Error("Unexpected response from worker")); } };
+        worker.onerror = function(error) {
+
+          reject(new Error(error.message)); };
+
+         worker.postMessage(file); }); 
+}
+
+const getAllExams = async () => {
+  const db = await initDB();
+  const tx = db.transaction('exams', 'readonly');
+  const store = tx.objectStore('exams');
+  const examListEntry = await store.get(1);
+  await tx.done;
+
+
+  return examListEntry ? JSON.parse(examListEntry.data) : [];
+};
+
 
 
 function modernAlert(msg,alertType) {
@@ -137,7 +211,7 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
     }, 500);
   }
 
-  function saveExam(event) {
+  async function saveExam(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const examData = {
@@ -148,7 +222,7 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
       arquivoExame: currentExamList[index].arquivoExame,
       observacoes: formData.get('observacoes')
     };
-    
+   
     let listExamData = currentExamList;
 
     function itemExists(arg) {
@@ -159,7 +233,11 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
 
     if (!itemExists(listExamData)) {
       listExamData.splice(index, 1, examData);
-      localStorage.setItem('exam', JSON.stringify(listExamData));
+      const db = await initDB(); 
+      const tx = db.transaction('exams', 'readwrite'); 
+      const store = tx.objectStore('exams'); 
+      await store.put({ id: 1, data: JSON.stringify(listExamData) });
+      await tx.done;
       returnMain();
       modernAlert('Exame salvo com sucesso!','#a7ffa7')
 
@@ -167,7 +245,7 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
         onSave(listExamData);
       }, 500); 
     }else{
-      modernAlert('Exame totalmente igual já existe!','#ff8888')
+      modernAlert('Exame 100% igual já existe!','#ff8888')
     }
   }
 
@@ -182,16 +260,34 @@ function EditScreen({index, currentExamList, onSave, onCancel}) {
         <span>Nome da clínica:* <input type='text' defaultValue={exam.nomeClinica} name='nomeClinica' required maxLength="30" autoComplete="new-password" /></span>
         <span>Nome do doutor:* <input type='text' defaultValue={exam.nomeDoutor} name='nomeDoutor' required maxLength="30" autoComplete="new-password" /></span>
         <span>
-    <a href="#" onClick={(e) => {
-        e.preventDefault();
-        const fileUrl = exam.arquivoExame;
+        <a href="#" onClick={(e) => {
+    e.preventDefault();
+    const fileUrl = exam.arquivoExame;
+    const blobUrl = createBlobURL(fileUrl);
+    
+    const worker = new Worker(new URL('./linkWorker.js', import.meta.url));
+          worker.onmessage = function(event) {
+              if (event.data.success) { 
+                if (window.cordova && window.cordova.InAppBrowser) { 
+                  window.cordova.InAppBrowser.open(blobUrl, '_blank', 'location=yes,zoom=yes,toolbar=yes,hardwareback=yes,enableViewportScale=yes'); } 
+                  else { window.open(blobUrl, '_blank', 'noopener,noreferrer'); }
+              } else {
 
-        if (window.cordova && window.cordova.InAppBrowser) {
-            window.cordova.InAppBrowser.open(fileUrl, '_blank', 'location=yes');
-        } else {
-            window.open(fileUrl, '_blank', 'noopener,noreferrer');
-        }
-    }}>Ver Arquivo</a>
+ 
+              }
+              worker.terminate();
+          };
+
+          worker.onerror = function(error) {
+
+              worker.terminate();
+          };
+
+          worker.postMessage(fileUrl);
+      }}>
+    Ver arquivo
+</a>
+
 </span>
 
 
@@ -243,16 +339,19 @@ function AdicionarScreen({ onSave, onCancel }) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const file = formData.get('arquivoExame');
+
+    const arquivoExame = await readFileAsDataURL(file);
     const examData = {
       nomeExame: formData.get('nomeExame'),
       dataExame: formData.get('dataExame'),
       nomeClinica: formData.get('nomeClinica'),
       nomeDoutor: formData.get('nomeDoutor'),
-      arquivoExame: await readFileAsDataURL(file),
+      arquivoExame: arquivoExame,
       observacoes: formData.get('observacoes')
     };
+
   
-    let listExamData = JSON.parse(localStorage.getItem('exam')) || [];
+    let listExamData = await getAllExams() || [];
 
     function itemExists(arg) {
       return arg.some(obj => Object.keys(examData).every(chave =>
@@ -262,7 +361,11 @@ function AdicionarScreen({ onSave, onCancel }) {
 
     if (!itemExists(listExamData)) {
       listExamData.push(examData);
-      localStorage.setItem('exam', JSON.stringify(listExamData));
+      const db = await initDB(); 
+      const tx = db.transaction('exams', 'readwrite'); 
+      const store = tx.objectStore('exams'); 
+      await store.put({ id: 1, data: JSON.stringify(listExamData) });
+      await tx.done;
 
       modernAlert('Exame salvo com sucesso!','#a7ffa7')
       returnMain(); 
@@ -271,33 +374,12 @@ function AdicionarScreen({ onSave, onCancel }) {
         onSave(listExamData);
       }, 500); 
     }else{
-      modernAlert('Exame totalmente igual já existe!','#ff8888')
+      modernAlert('Exame 100% igual já existe!','#ff8888')
     }
   }
 
-  async function readFileAsDataURL(file) {
-    try {
 
-        if (file.type === 'application/pdf') {
-            return file.name; 
-        }
-
-        return await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-            reader.onabort = error => reject(error);
-            reader.readAsDataURL(file);
-        });
-    } catch (error) {
-        console.error('Error reading file:', error);
-        throw error;
-    }
-}
-
-
-
-
+  
 
   return (
     <div className='adicionarDiv' ref={adcDivRef}>
@@ -307,7 +389,7 @@ function AdicionarScreen({ onSave, onCancel }) {
         <span>Data do exame:* <input type='date' name='dataExame' required max={new Date().toISOString().split('T')[0]}/></span>
         <span>Nome da clínica:* <input type='text' name='nomeClinica' required maxLength="30" autoComplete="new-password"/></span>
         <span>Nome do doutor:* <input type='text' name='nomeDoutor' required maxLength="30" autoComplete="new-password"/></span>
-        <span>Arquivo do exame:* <input type='file' name='arquivoExame' required /></span>
+        <span>Foto ou arquivo do exame:* <input type='file' name='arquivoExame' required /></span>
         <span>Observações: <input type='text' name='observacoes' maxLength="100" autoComplete="new-password"/></span>
         <button type='submit' >Salvar</button>
         <button type='button' onClick={returnMain}>Voltar</button>
@@ -327,8 +409,11 @@ export default function App() {
 
   useEffect(() => {
 
-    const savedExams = JSON.parse(localStorage.getItem('exam')) || [];
-    setExamList(savedExams);
+    const fetchExams = async () => { 
+    const savedExams = await getAllExams(); 
+
+    setExamList(savedExams); }; 
+    fetchExams();
   },[])
 
   const components = {
@@ -364,10 +449,11 @@ export default function App() {
         return 0;
       });
     }else if (isSorted === 'dateFilter') {
+        
       examList.sort((a, b) => {
         const dateA = new Date(a.dataExame);
         const dateB = new Date(b.dataExame);
-        return dateA - dateB;
+        return dateB - dateA;
       });
     
     }else if(isSorted === 'doctorFilter') {
@@ -394,11 +480,15 @@ export default function App() {
   
   }
 
-  function deleteExam(ind){
+  async function deleteExam(ind){
     let examItem = document.getElementsByClassName("exam-item")
     examItem[ind].style.animation = "popupHide 0.5s ease-in"
     const updatedExamList = examList.filter((_, index) => index !== ind);
-    localStorage.setItem('exam', JSON.stringify(updatedExamList));
+    const db = await initDB(); 
+    const tx = db.transaction('exams', 'readwrite'); 
+    const store = tx.objectStore('exams'); 
+    await store.put({ id: 1, data: JSON.stringify(updatedExamList) });
+    await tx.done;
     setTimeout(() => {
       setExamList(updatedExamList);
     }, 500); 
@@ -410,9 +500,9 @@ export default function App() {
     
     setDisplay('filterBallon')
   }
-  function findExam(event){
+  async function findExam(event){
     const value = event.target.value.toLowerCase();
-    let savedExams = JSON.parse(localStorage.getItem('exam') || []);
+    let savedExams = await getAllExams() || [];
 
 
     const filteredExams = savedExams.filter(exam =>
@@ -461,20 +551,34 @@ export default function App() {
             <p><strong>Data do exame:</strong> <span>{exam.dataExame}</span></p>
             <p><strong>Nome da clínica:</strong> <span>{exam.nomeClinica}</span></p>
             <p><strong>Nome do doutor:</strong> <span>{exam.nomeDoutor}</span></p>
-            <p><strong>Arquivo do exame:</strong>
+            <p><strong>Foto ou arquivo do exame:</strong>
             <a href="#" onClick={(e) => {
-        e.preventDefault();
-        const fileUrl = exam.arquivoExame;
+    e.preventDefault();
+    const fileUrl = exam.arquivoExame;
+    const blobUrl = createBlobURL(fileUrl);
+    
+    const worker = new Worker(new URL('./linkWorker.js', import.meta.url));
+          worker.onmessage = function(event) {
+              if (event.data.success) { 
+                if (window.cordova && window.cordova.InAppBrowser) { 
+                  window.cordova.InAppBrowser.open(blobUrl, '_blank', 'location=yes,zoom=yes,toolbar=yes,hardwareback=yes,enableViewportScale=yes'); } 
+                  else { window.open(blobUrl, '_blank', 'noopener,noreferrer'); }
+              } else {
 
+ 
+              }
+              worker.terminate();
+          };
 
-        if (window.cordova && window.cordova.InAppBrowser) {
-            window.cordova.InAppBrowser.open(fileUrl, '_blank', 'location=yes');
-        } else {
+          worker.onerror = function(error) {
 
-            window.open(fileUrl, '_blank', 'noopener,noreferrer');
-        }
-    }}>Ver Arquivo</a>
+              worker.terminate();
+          };
 
+          worker.postMessage(fileUrl);
+      }}>
+    Ver arquivo
+</a>
 </p>
             <p><strong>Observações:</strong> <span>{exam.observacoes}</span></p>
 
